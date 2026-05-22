@@ -1,0 +1,28 @@
+@page "/Research/{id:guid}/Report"
+@model AiResearchers.Web.Pages.Research.ReportModel
+@{
+    ViewData["Title"] = "Отчёт";
+}
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold">@Model.Task.Topic</h1>
+    <div class="flex gap-2">
+        <a href="/Research/@Model.Task.Id/Report?handler=ExportMd" class="border border-gray-700 rounded-md px-3 py-1.5 text-sm">⬇ MD</a>
+        <a href="/Research/@Model.Task.Id/Report?handler=ExportPdf" class="bg-violet-600 hover:bg-violet-500 text-white rounded-md px-3 py-1.5 text-sm">⬇ PDF</a>
+    </div>
+</div>
+
+<div class="flex gap-8">
+    <article class="prose prose-invert max-w-none flex-1 leading-relaxed">
+        @Model.Html
+    </article>
+    <aside class="w-64 shrink-0">
+        <div class="text-xs uppercase text-gray-500 mb-2">Источники (@Model.Sources.Count)</div>
+        <ul class="space-y-2 text-sm">
+            @foreach (var s in Model.Sources)
+            {
+                <li><a href="@s.Url" target="_blank" rel="noopener" class="text-violet-300 hover:underline break-words">@(string.IsNullOrWhiteSpace(s.Title) ? s.Url : s.Title)</a></li>
+            }
+        </ul>
+    </aside>
+</div>
