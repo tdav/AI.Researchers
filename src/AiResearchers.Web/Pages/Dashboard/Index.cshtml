@@ -1,0 +1,31 @@
+@page
+@model AiResearchers.Web.Pages.Dashboard.IndexModel
+@{
+    ViewData["Title"] = "Дашборд";
+}
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold">Исследования</h1>
+    <a href="#" class="bg-violet-600 hover:bg-violet-500 text-white rounded-md px-4 py-2 text-sm">
+        + Новое исследование
+    </a>
+</div>
+
+@if (Model.Tasks.Count == 0)
+{
+    <div class="border border-dashed border-gray-700 rounded-lg p-10 text-center text-gray-500">
+        Пока нет исследований. Создай первое.
+    </div>
+}
+else
+{
+    <div class="space-y-2">
+        @foreach (var task in Model.Tasks)
+        {
+            <div class="flex items-center justify-between border border-gray-800 rounded-md px-4 py-3">
+                <span>@task.Topic</span>
+                <span class="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-300">@task.Status</span>
+            </div>
+        }
+    </div>
+}
