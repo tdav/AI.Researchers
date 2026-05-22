@@ -14,21 +14,49 @@ public class InterviewService : IInterviewService
         this.chatClient = chatClient;
     }
 
-    public async Task<IReadOnlyList<string>> GenerateFollowUpQuestionsAsync(
-        ResearchTask task, CancellationToken cancellationToken = default)
+    public async Task<InterviewRound> GenerateClarifyingRoundAsync(
+        ResearchTask task, int roundNumber, int maxRounds, CancellationToken cancellationToken = default)
     {
+        bool isLastAllowedRound = roundNumber >= maxRounds;
         string prompt =
-            $"You are scoping a research task. Topic: \"{task.Topic}\". " +
-            $"Depth: {task.Depth}. Audience: {task.Audience ?? "general"}. " +
+            $"You are an expert research interviewer scoping a task before any web research begins. " +
+            $"Topic: \"{task.Topic}\". Depth: {task.Depth}. Audience: {task.Audience ?? "general"}. " +
             $"{this.RenderAnswers(task)}" +
-            $"Generate 3-5 concise clarifying questions that would most improve the research direction. " +
-            $"Answer language: {task.Language}. " +
-            $"Return JSON: {{ \"questions\": [\"...\"] }}.";
+            $"This is clarification round {roundNumber} of at most {maxRounds}. " +
+            $"Think about what is still unknown: identify the coverage gaps that would most change the " +
+            $"research direction, and prioritize the highest-impact clarifications. " +
+            $"Do NOT repeat anything already answered above. " +
+            $"Generate 2-4 clarifying questions. For EACH question: " +
+            $"set \"kind\" to \"single\" when exactly one answer fits, or \"multi\" when several may apply; " +
+            $"provide 2-5 concrete, mutually distinct \"options\" the user can pick from. " +
+            $"Set \"enoughRecommended\" to true if the answers already cover the scope well enough to start. " +
+            (isLastAllowedRound ? "This is the final allowed round, so set \"enoughRecommended\" to true. " : string.Empty) +
+            $"Optionally give a one-sentence \"rationale\" for your recommendation. " +
+            $"All question text, options and rationale must be in this language: {task.Language}. " +
+            $"Return JSON: {{ \"questions\": [{{ \"text\": \"...\", \"kind\": \"single|multi\", " +
+            $"\"options\": [\"...\"] }}], \"enoughRecommended\": false, \"rationale\": \"...\" }}.";
 
-        ChatResponse<FollowUpQuestions> response =
-            await this.chatClient.GetResponseAsync<FollowUpQuestions>(prompt, cancellationToken: cancellationToken);
+        ChatResponse<InterviewRoundDto> response =
+            await this.chatClient.GetResponseAsync<InterviewRoundDto>(prompt, cancellationToken: cancellationToken);
 
-        return response.Result?.Questions ?? new List<string>();
+        InterviewRoundDto dto = response.Result ?? new InterviewRoundDto();
+        return new InterviewRound
+        {
+            EnoughRecommended = dto.EnoughRecommended || isLastAllowedRound,
+            Rationale = string.IsNullOrWhiteSpace(dto.Rationale) ? null : dto.Rationale,
+            Questions = dto.Questions
+                .Where(q => !string.IsNullOrWhiteSpace(q.Text))
+                .Select(q => new ClarifyingQuestion
+                {
+                    Text = q.Text,
+                    Kind = string.Equals(q.Kind, "multi", StringComparison.OrdinalIgnoreCase)
+                        ? QuestionKind.Multi : QuestionKind.Single,
+                    Options = (q.Options ?? new List<string>())
+                        .Where(o => !string.IsNullOrWhiteSpace(o)).ToList(),
+                    AllowOther = true
+                })
+                .ToList()
+        };
     }
 
     public async Task<IReadOnlyList<OutlineDraftSection>> GenerateOutlineDraftAsync(
@@ -63,9 +91,18 @@ public class InterviewService : IInterviewService
         return sb.ToString();
     }
 
-    private sealed class FollowUpQuestions
+    private sealed class InterviewRoundDto
     {
-        public List<string> Questions { get; set; } = new();
+        public List<ClarifyingQuestionDto> Questions { get; set; } = new();
+        public bool EnoughRecommended { get; set; }
+        public string? Rationale { get; set; }
+    }
+
+    private sealed class ClarifyingQuestionDto
+    {
+        public string Text { get; set; } = string.Empty;
+        public string Kind { get; set; } = "single";
+        public List<string>? Options { get; set; }
     }
 
     private sealed class OutlineDraft
