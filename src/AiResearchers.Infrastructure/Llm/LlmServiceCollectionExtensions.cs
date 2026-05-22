@@ -19,7 +19,13 @@ public static class LlmServiceCollectionExtensions
         // Function-invocation pipeline нужен, чтобы tool-calls исполнялись автоматически.
         services.AddSingleton<IChatClient>(_ =>
         {
-            OllamaApiClient ollama = new(new Uri(options.Endpoint), options.Model);
+            // Long-lived HttpClient for a singleton chat client; raise timeout for slow local models.
+            HttpClient httpClient = new()
+            {
+                BaseAddress = new Uri(options.Endpoint),
+                Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
+            };
+            OllamaApiClient ollama = new(httpClient, options.Model);
             return new ChatClientBuilder(ollama)
                 .UseFunctionInvocation()
                 .Build();
