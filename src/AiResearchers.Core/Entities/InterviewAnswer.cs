@@ -10,6 +10,7 @@ public class InterviewAnswer
     public string Answer { get; set; } = string.Empty;
     public AnswerSource Source { get; set; }
     public int Order { get; set; }
+    public int Round { get; set; } = 1;
 
     public ResearchTask? ResearchTask { get; set; }
 }

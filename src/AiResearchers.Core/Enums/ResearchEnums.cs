@@ -57,3 +57,9 @@ public enum EventLevel
     Warn,
     Error
 }
+
+public enum QuestionKind
+{
+    Single,
+    Multi
+}
