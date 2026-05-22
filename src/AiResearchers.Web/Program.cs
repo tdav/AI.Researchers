@@ -1,3 +1,4 @@
+using AiResearchers.Core.Interview;
 using AiResearchers.Infrastructure;
 using AiResearchers.Infrastructure.Llm;
 
@@ -6,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddLlm(builder.Configuration);
+builder.Services.AddInterview();
+builder.Services.AddAntiforgery(o => o.HeaderName = "RequestVerificationToken");
 
 var app = builder.Build();
 
