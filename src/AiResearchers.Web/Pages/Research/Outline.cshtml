@@ -1,0 +1,41 @@
+@page "/Research/{id:guid}/Outline"
+@model AiResearchers.Web.Pages.Research.OutlineModel
+@{
+    ViewData["Title"] = "Структура отчёта";
+}
+
+<h1 class="text-2xl font-semibold mb-2">Структура отчёта</h1>
+<p class="text-gray-400 mb-6">Тема: @Model.Task.Topic. Отредактируй секции и утверди.</p>
+
+<form method="post" asp-page-handler="Approve" asp-route-id="@Model.Task.Id" class="space-y-3 max-w-3xl">
+    <div id="sections">
+        @for (int i = 0; i < Model.Sections.Count; i++)
+        {
+            <div class="border border-gray-800 rounded-md p-3 space-y-2">
+                <input name="titles" value="@Model.Sections[i].Title"
+                       class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 font-medium" />
+                <textarea name="descriptions" rows="2"
+                          class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-300">@Model.Sections[i].Description</textarea>
+            </div>
+        }
+    </div>
+    <button type="button" onclick="addSection()" class="text-violet-300 text-sm">+ добавить секцию</button>
+    <div>
+        <button type="submit" class="bg-violet-600 hover:bg-violet-500 text-white rounded-md px-4 py-2">
+            Утвердить и поставить в очередь
+        </button>
+    </div>
+</form>
+
+<template id="section-tpl">
+    <div class="border border-gray-800 rounded-md p-3 space-y-2">
+        <input name="titles" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 font-medium" placeholder="Заголовок секции" />
+        <textarea name="descriptions" rows="2" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-300" placeholder="Описание"></textarea>
+    </div>
+</template>
+<script>
+    function addSection() {
+        var tpl = document.getElementById('section-tpl');
+        document.getElementById('sections').appendChild(tpl.content.cloneNode(true));
+    }
+</script>
