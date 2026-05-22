@@ -1,6 +1,9 @@
+using AiResearchers.Core.Agents;
 using AiResearchers.Core.Interview;
 using AiResearchers.Infrastructure;
 using AiResearchers.Infrastructure.Llm;
+using AiResearchers.Infrastructure.Orchestration;
+using AiResearchers.Infrastructure.Research;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +11,9 @@ builder.Services.AddRazorPages();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddLlm(builder.Configuration);
 builder.Services.AddInterview();
+builder.Services.AddResearchSources(builder.Configuration);
+builder.Services.AddAgents();
+builder.Services.AddOrchestration();
 builder.Services.AddAntiforgery(o => o.HeaderName = "RequestVerificationToken");
 
 var app = builder.Build();

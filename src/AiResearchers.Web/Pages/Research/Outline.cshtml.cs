@@ -1,6 +1,7 @@
 using AiResearchers.Core.Entities;
 using AiResearchers.Core.Enums;
 using AiResearchers.Core.Interview;
+using AiResearchers.Core.Orchestration;
 using AiResearchers.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,11 +13,13 @@ public class OutlineModel : PageModel
 {
     private readonly AppDbContext db;
     private readonly IInterviewService interview;
+    private readonly IResearchQueue queue;
 
-    public OutlineModel(AppDbContext db, IInterviewService interview)
+    public OutlineModel(AppDbContext db, IInterviewService interview, IResearchQueue queue)
     {
         this.db = db;
         this.interview = interview;
+        this.queue = queue;
     }
 
     public ResearchTask Task { get; private set; } = null!;
@@ -77,6 +80,8 @@ public class OutlineModel : PageModel
 
         task.Status = ResearchStatus.Queued;
         await this.db.SaveChangesAsync();
+
+        this.queue.Enqueue(task.Id);
 
         return this.RedirectToPage("/Dashboard/Index");
     }
