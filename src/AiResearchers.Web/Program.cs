@@ -1,9 +1,11 @@
 using AiResearchers.Infrastructure;
+using AiResearchers.Infrastructure.Llm;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddLlm(builder.Configuration);
 
 var app = builder.Build();
 
