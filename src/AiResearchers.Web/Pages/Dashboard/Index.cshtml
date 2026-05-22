@@ -22,10 +22,13 @@ else
     <div class="space-y-2">
         @foreach (var task in Model.Tasks)
         {
-            <div class="flex items-center justify-between border border-gray-800 rounded-md px-4 py-3">
+            var href = task.Status == AiResearchers.Core.Enums.ResearchStatus.Completed
+                ? $"/Research/{task.Id}/Report"
+                : $"/Research/{task.Id}/Progress";
+            <a href="@href" class="flex items-center justify-between border border-gray-800 hover:border-gray-600 rounded-md px-4 py-3">
                 <span>@task.Topic</span>
                 <span class="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-300">@task.Status</span>
-            </div>
+            </a>
         }
     </div>
 }
