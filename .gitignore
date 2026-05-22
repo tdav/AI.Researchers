@@ -11,3 +11,4 @@ appsettings.*.local.json
 *.log
 app.err
 nul
+/graphify-out
