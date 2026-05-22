@@ -1,0 +1,18 @@
+@page "/Research/{id:guid}/Interview"
+@model AiResearchers.Web.Pages.Research.InterviewModel
+@{
+    ViewData["Title"] = "Уточняющие вопросы";
+}
+
+<h1 class="text-2xl font-semibold mb-2">Уточняющие вопросы</h1>
+<p class="text-gray-400 mb-6">Тема: @Model.Task.Topic</p>
+
+<div id="questions-area">
+    <button hx-post="/Research/@Model.Task.Id/Interview?handler=Generate"
+            hx-target="#questions-area" hx-swap="innerHTML"
+            hx-indicator="#gen-spin"
+            class="bg-violet-600 hover:bg-violet-500 text-white rounded-md px-4 py-2">
+        Сгенерировать вопросы
+    </button>
+    <span id="gen-spin" class="htmx-indicator text-gray-400 ml-2">генерирую…</span>
+</div>

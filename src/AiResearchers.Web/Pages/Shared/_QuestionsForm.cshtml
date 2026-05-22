@@ -1,0 +1,23 @@
+@model AiResearchers.Web.Pages.Research.InterviewModel
+
+@if (Model.Questions.Count == 0)
+{
+    <p class="text-gray-500">Модель не вернула вопросов — можно пропустить шаг.</p>
+    <a href="/Research/@Model.Task.Id/Outline" class="text-violet-300">Перейти к структуре →</a>
+}
+else
+{
+    <form method="post" asp-page-handler="Save" asp-route-id="@Model.Task.Id" class="space-y-4">
+        @for (int i = 0; i < Model.Questions.Count; i++)
+        {
+            <div>
+                <label class="block text-sm text-gray-300 mb-1">@Model.Questions[i]</label>
+                <input type="hidden" name="questions" value="@Model.Questions[i]" />
+                <input name="answers" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+            </div>
+        }
+        <button type="submit" class="bg-violet-600 hover:bg-violet-500 text-white rounded-md px-4 py-2">
+            Далее: структура отчёта →
+        </button>
+    </form>
+}
