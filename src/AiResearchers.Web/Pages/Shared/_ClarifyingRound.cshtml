@@ -1,0 +1,117 @@
+@using AiResearchers.Core.Enums
+@model AiResearchers.Web.Pages.Research.InterviewModel
+
+@* Prior rounds, read-only *@
+@if (Model.PriorRounds.Count > 0)
+{
+    <div class="space-y-4 mb-6">
+        @foreach (var grp in Model.PriorRounds)
+        {
+            <div class="border border-gray-800 rounded-md p-3">
+                <p class="text-xs uppercase tracking-wide text-gray-500 mb-2">Раунд @grp.Key</p>
+                <ul class="space-y-2">
+                    @foreach (var a in grp.Value)
+                    {
+                        <li>
+                            <p class="text-sm text-gray-300">@a.Question</p>
+                            <p class="text-sm text-violet-300">@(string.IsNullOrWhiteSpace(a.Answer) ? "—" : a.Answer)</p>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+}
+
+@if (Model.Questions.Count == 0)
+{
+    <p class="text-gray-500 mb-3">Модель не вернула вопросов — можно перейти к структуре отчёта.</p>
+    <a href="/Research/@Model.Task.Id/Outline"
+       class="inline-block bg-violet-600 hover:bg-violet-500 text-white rounded-md px-4 py-2">
+        К структуре отчёта →
+    </a>
+}
+else
+{
+    <form hx-post="/Research/@Model.Task.Id/Interview?handler=Save"
+          hx-target="#interview-body" hx-swap="innerHTML"
+          hx-indicator="#round-spin" class="space-y-5">
+        <input type="hidden" name="Round" value="@Model.Round" />
+        <p class="text-xs uppercase tracking-wide text-gray-500">Раунд @Model.Round из @Model.MaxInterviewRounds</p>
+
+        @for (int i = 0; i < Model.Questions.Count; i++)
+        {
+            var q = Model.Questions[i];
+            <div class="border border-gray-800 rounded-md p-3 space-y-2">
+                <label class="block text-sm text-gray-200">@q.Text</label>
+                <input type="hidden" name="Posted[@i].Text" value="@q.Text" />
+                <input type="hidden" name="Posted[@i].Kind" value="@q.Kind" />
+
+                @if (q.Options.Count == 0)
+                {
+                    <input name="Posted[@i].Other"
+                           class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2"
+                           placeholder="Ваш ответ" />
+                }
+                else
+                {
+                    @foreach (var opt in q.Options)
+                    {
+                        <label class="flex items-center gap-2 text-sm text-gray-300">
+                            @if (q.Kind == QuestionKind.Multi)
+                            {
+                                <input type="checkbox" name="Posted[@i].SelectedOptions" value="@opt"
+                                       class="accent-violet-500" />
+                            }
+                            else
+                            {
+                                <input type="radio" name="Posted[@i].Selected" value="@opt"
+                                       class="accent-violet-500" />
+                            }
+                            <span>@opt</span>
+                        </label>
+                    }
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-500">Другое:</span>
+                        <input name="Posted[@i].Other"
+                               class="flex-1 bg-gray-900 border border-gray-700 rounded-md px-3 py-1.5 text-sm"
+                               placeholder="свой вариант (необязательно)" />
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.Rationale))
+        {
+            <p class="text-sm text-gray-400 italic">Рекомендация: @Model.Rationale</p>
+        }
+
+        <span id="round-spin" class="htmx-indicator text-gray-400">обрабатываю…</span>
+
+        <div class="flex items-center gap-3">
+            @{
+                string moreClass = Model.EnoughRecommended
+                    ? "bg-gray-700 hover:bg-gray-600"
+                    : "bg-violet-600 hover:bg-violet-500";
+                string doneClass = Model.EnoughRecommended
+                    ? "bg-violet-600 hover:bg-violet-500"
+                    : "bg-gray-700 hover:bg-gray-600";
+            }
+            @if (Model.Round < Model.MaxInterviewRounds)
+            {
+                <button type="submit" name="action" value="more"
+                        class="@moreClass text-white rounded-md px-4 py-2">
+                    Сохранить и уточнить ещё
+                </button>
+            }
+            else
+            {
+                <span class="text-sm text-gray-500">Достигнут лимит раундов (@Model.MaxInterviewRounds).</span>
+            }
+            <button type="submit" name="action" value="done"
+                    class="@doneClass text-white rounded-md px-4 py-2">
+                Сохранить и к структуре →
+            </button>
+        </div>
+    </form>
+}
