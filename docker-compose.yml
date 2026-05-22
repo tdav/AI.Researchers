@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: airesearchers-postgres
+    environment:
+      POSTGRES_USER: airesearchers
+      POSTGRES_PASSWORD: airesearchers_dev
+      POSTGRES_DB: airesearchers
+    ports:
+      - "5433:5432"
+    volumes:
+      - airesearchers_pgdata:/var/lib/postgresql/data
+
+volumes:
+  airesearchers_pgdata:
