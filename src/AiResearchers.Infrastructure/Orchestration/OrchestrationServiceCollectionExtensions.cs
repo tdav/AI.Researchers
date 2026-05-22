@@ -8,6 +8,7 @@ public static class OrchestrationServiceCollectionExtensions
 {
     public static IServiceCollection AddOrchestration(this IServiceCollection services)
     {
+        services.AddSingleton<IResearchCancellation, ResearchCancellation>();
         services.AddSingleton<IResearchQueue, ChannelResearchQueue>();
         services.AddScoped<IResearchOrchestrator, ResearchOrchestrator>();
         services.AddHostedService<ResearchBackgroundService>();

@@ -10,13 +10,18 @@ public class ResearchBackgroundService : BackgroundService
     private readonly IResearchQueue queue;
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger<ResearchBackgroundService> logger;
+    private readonly IResearchCancellation cancellation;
 
     public ResearchBackgroundService(
-        IResearchQueue queue, IServiceScopeFactory scopeFactory, ILogger<ResearchBackgroundService> logger)
+        IResearchQueue queue,
+        IServiceScopeFactory scopeFactory,
+        ILogger<ResearchBackgroundService> logger,
+        IResearchCancellation cancellation)
     {
         this.queue = queue;
         this.scopeFactory = scopeFactory;
         this.logger = logger;
+        this.cancellation = cancellation;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -28,7 +33,15 @@ public class ResearchBackgroundService : BackgroundService
                 using IServiceScope scope = this.scopeFactory.CreateScope();
                 IResearchOrchestrator orchestrator =
                     scope.ServiceProvider.GetRequiredService<IResearchOrchestrator>();
-                await orchestrator.RunAsync(id, stoppingToken);
+                CancellationTokenSource cts = this.cancellation.Register(id, stoppingToken);
+                try
+                {
+                    await orchestrator.RunAsync(id, cts.Token);
+                }
+                finally
+                {
+                    this.cancellation.Complete(id);
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
