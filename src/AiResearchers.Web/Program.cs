@@ -1,6 +1,20 @@
+using AiResearchers.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRazorPages();
+builder.Services.AddInfrastructure(builder.Configuration);
+
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello World!");
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+}
+
+app.UseStaticFiles();
+app.UseRouting();
+app.MapRazorPages();
+app.MapGet("/", () => Results.Redirect("/Dashboard"));
 
 app.Run();

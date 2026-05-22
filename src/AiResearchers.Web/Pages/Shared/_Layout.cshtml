@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - AI Researchers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <script src="https://unpkg.com/htmx.org@2.0.4" crossorigin="anonymous"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+    <header class="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+        <a href="/Dashboard" class="text-lg font-semibold text-violet-300">AI Researchers</a>
+        <button id="theme-toggle" class="text-sm text-gray-400 hover:text-gray-100"
+                onclick="document.documentElement.classList.toggle('dark')">тема</button>
+    </header>
+    <main class="max-w-5xl mx-auto px-6 py-8">
+        @RenderBody()
+    </main>
+</body>
+</html>
