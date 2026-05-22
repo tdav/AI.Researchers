@@ -11,7 +11,12 @@ namespace AiResearchers.Infrastructure.Orchestration;
 
 public class ResearchOrchestrator : IResearchOrchestrator
 {
-    private const int MaxSourcesPerRound = 6;
+    // Bound the expensive Analyst LLM calls per round: with a slow local model, analyzing
+    // every fetched page makes a round take 20-40 min. Cap focus areas, analyzed pages, and
+    // results per query so a round stays in the minutes range.
+    private const int MaxFocusPerRound = 4;
+    private const int MaxAnalyzedPerRound = 5;
+    private const int ResultsPerQuery = 3;
     private readonly AppDbContext db;
     private readonly IPlannerAgent planner;
     private readonly ISearcherAgent searcher;
@@ -71,10 +76,12 @@ public class ResearchOrchestrator : IResearchOrchestrator
                 await this.SaveAsync(task, ProgressPhase.Searching, $"Раунд {round}", cancellationToken);
 
                 int processed = 0;
-                while (pending.Count > 0 && processed < MaxSourcesPerRound)
+                int analyzedThisRound = 0;
+                while (pending.Count > 0 && processed < MaxFocusPerRound && analyzedThisRound < MaxAnalyzedPerRound)
                 {
                     string focus = pending.Dequeue();
-                    await this.ProcessFocusAsync(task, focus, round, findingsSummary, cancellationToken);
+                    int budget = MaxAnalyzedPerRound - analyzedThisRound;
+                    analyzedThisRound += await this.ProcessFocusAsync(task, focus, round, findingsSummary, budget, cancellationToken);
                     processed++;
                 }
 
@@ -120,9 +127,11 @@ public class ResearchOrchestrator : IResearchOrchestrator
 
     // findingsSummary: accumulated finding texts for the critic — kept entirely in memory,
     // never added to task.Findings navigation (which would trigger EF INSERT duplicates).
-    private async Task ProcessFocusAsync(
-        ResearchTask task, string focus, int round, List<string> findingsSummary, CancellationToken ct)
+    // Returns the number of pages successfully analyzed (LLM calls), bounded by 'budget'.
+    private async Task<int> ProcessFocusAsync(
+        ResearchTask task, string focus, int round, List<string> findingsSummary, int budget, CancellationToken ct)
     {
+        int analyzed = 0;
         IReadOnlyList<string> queries;
         try
         {
@@ -131,7 +140,7 @@ public class ResearchOrchestrator : IResearchOrchestrator
         catch (Exception ex)
         {
             await this.SaveAsync(task, ProgressPhase.Searching, $"Searcher fail: {ex.Message}", ct, EventLevel.Warn);
-            return;
+            return analyzed;
         }
 
         var seenUrls = new HashSet<string>(
@@ -145,7 +154,7 @@ public class ResearchOrchestrator : IResearchOrchestrator
             IReadOnlyList<SearchResultItem> results;
             try
             {
-                results = await this.search.SearchAsync(query, 5, ct);
+                results = await this.search.SearchAsync(query, ResultsPerQuery, ct);
             }
             catch (Exception ex)
             {
@@ -201,8 +210,16 @@ public class ResearchOrchestrator : IResearchOrchestrator
                 }
                 await this.SaveAsync(task, ProgressPhase.Analyzing,
                     $"{r.Title}: +{findings.Count} фактов", ct);
+
+                analyzed++;
+                if (analyzed >= budget)
+                {
+                    return analyzed;
+                }
             }
         }
+
+        return analyzed;
     }
 
     private Guid? MatchSection(ResearchTask task, string? title)
