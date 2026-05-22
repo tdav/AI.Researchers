@@ -6,3 +6,8 @@ obj/
 .superpowers/
 appsettings.*.local.json
 *.db
+.claude/
+.playwright-mcp/
+*.log
+app.err
+nul
