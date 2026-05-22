@@ -1,0 +1,35 @@
+@page "/Research/New"
+@model AiResearchers.Web.Pages.Research.NewModel
+@{
+    ViewData["Title"] = "Новое исследование";
+}
+
+<h1 class="text-2xl font-semibold mb-6">Новое исследование</h1>
+
+<form method="post" class="space-y-4 max-w-2xl">
+    <div>
+        <label class="block text-sm text-gray-400 mb-1">Тема</label>
+        <input asp-for="Topic" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2"
+               placeholder="Например: рынок локальных LLM в 2026" />
+        <span asp-validation-for="Topic" class="text-red-400 text-sm"></span>
+    </div>
+    <div class="flex gap-4">
+        <div class="flex-1">
+            <label class="block text-sm text-gray-400 mb-1">Глубина</label>
+            <select asp-for="Depth" asp-items="Html.GetEnumSelectList<AiResearchers.Core.Enums.ResearchDepth>()"
+                    class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2"></select>
+        </div>
+        <div class="flex-1">
+            <label class="block text-sm text-gray-400 mb-1">Язык отчёта</label>
+            <input asp-for="Language" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+        </div>
+    </div>
+    <div>
+        <label class="block text-sm text-gray-400 mb-1">Аудитория (опционально)</label>
+        <input asp-for="Audience" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2"
+               placeholder="Например: технические руководители" />
+    </div>
+    <button type="submit" class="bg-violet-600 hover:bg-violet-500 text-white rounded-md px-4 py-2">
+        Далее: уточняющие вопросы →
+    </button>
+</form>
