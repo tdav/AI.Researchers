@@ -64,8 +64,10 @@ public class ResearchOrchestrator : IResearchOrchestrator
             await this.Save(cancellationToken);
 
             // Separate local list for the critic's running summary — never touches task.Findings.
-            // This prevents EF from inserting duplicate Finding rows.
-            List<string> findingsSummary = new();
+            // This prevents EF from inserting duplicate Finding rows. seenFindings dedups the
+            // summary by normalized text so the critic isn't fed the same fact many times.
+            List<FindingNote> findingsSummary = new();
+            HashSet<string> seenFindings = new();
 
             var pending = new Queue<string>(focusAreas);
             int round = 0;
@@ -81,7 +83,7 @@ public class ResearchOrchestrator : IResearchOrchestrator
                 {
                     string focus = pending.Dequeue();
                     int budget = MaxAnalyzedPerRound - analyzedThisRound;
-                    analyzedThisRound += await this.ProcessFocusAsync(task, focus, round, findingsSummary, budget, cancellationToken);
+                    analyzedThisRound += await this.ProcessFocusAsync(task, focus, round, findingsSummary, seenFindings, budget, cancellationToken);
                     processed++;
                 }
 
@@ -89,6 +91,23 @@ public class ResearchOrchestrator : IResearchOrchestrator
                 CritiqueResult critique = await this.critic.CritiqueAsync(task, findingsSummary, cancellationToken);
                 await this.SaveAsync(task, ProgressPhase.Critiquing,
                     critique.Enough ? "Critic: достаточно" : $"Critic: ещё {critique.NewFocusAreas.Count}", cancellationToken);
+
+                List<string> weak = critique.Coverage
+                    .Where(c => !c.Covered || c.Confidence < 50)
+                    .Select(c => c.Section)
+                    .ToList();
+                if (weak.Count > 0)
+                {
+                    await this.SaveAsync(task, ProgressPhase.Critiquing,
+                        $"Critic: слабое покрытие — {string.Join(", ", weak)}", cancellationToken);
+                }
+
+                if (critique.Conflicts.Count > 0)
+                {
+                    await this.SaveAsync(task, ProgressPhase.Critiquing,
+                        $"Critic: противоречия ({critique.Conflicts.Count}): {string.Join("; ", critique.Conflicts.Take(3))}",
+                        cancellationToken, EventLevel.Warn);
+                }
 
                 if (critique.Enough)
                 {
@@ -125,11 +144,13 @@ public class ResearchOrchestrator : IResearchOrchestrator
         }
     }
 
-    // findingsSummary: accumulated finding texts for the critic — kept entirely in memory,
+    // findingsSummary: accumulated finding notes for the critic — kept entirely in memory,
     // never added to task.Findings navigation (which would trigger EF INSERT duplicates).
-    // Returns the number of pages successfully analyzed (LLM calls), bounded by 'budget'.
+    // seenFindings dedups that summary by normalized text. Returns the number of pages
+    // successfully analyzed (LLM calls), bounded by 'budget'.
     private async Task<int> ProcessFocusAsync(
-        ResearchTask task, string focus, int round, List<string> findingsSummary, int budget, CancellationToken ct)
+        ResearchTask task, string focus, int round, List<FindingNote> findingsSummary,
+        HashSet<string> seenFindings, int budget, CancellationToken ct)
     {
         int analyzed = 0;
         IReadOnlyList<string> queries;
@@ -205,8 +226,13 @@ public class ResearchOrchestrator : IResearchOrchestrator
                         Text = fi.Text,
                         Round = round
                     });
-                    // Accumulate text for critic summary (local list only, not EF-tracked).
-                    findingsSummary.Add(fi.Text);
+                    // Accumulate for critic summary (local list only, not EF-tracked),
+                    // deduped by normalized text so the same fact isn't repeated.
+                    string key = FindingDedup.Normalize(fi.Text);
+                    if (key.Length > 0 && seenFindings.Add(key))
+                    {
+                        findingsSummary.Add(new FindingNote { Section = fi.SectionTitle, Text = fi.Text });
+                    }
                 }
                 await this.SaveAsync(task, ProgressPhase.Analyzing,
                     $"{r.Title}: +{findings.Count} фактов", ct);
@@ -247,6 +273,7 @@ public class ResearchOrchestrator : IResearchOrchestrator
         return await this.db.ResearchTasks
             .Include(t => t.OutlineSections)
             .Include(t => t.Findings)
+            .ThenInclude(f => f.Source)
             .FirstAsync(t => t.Id == id, ct);
     }
 
